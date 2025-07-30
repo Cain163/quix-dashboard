@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AlertTriangle, TrendingUp, Globe, Clock, RefreshCw, Shield, Activity, Satellite, Menu, X } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://quix.ngrok.app';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://29abe117e0df.ngrok-free.app';
 
 // Headers to bypass ngrok warning page
 const defaultHeaders = {
@@ -17,6 +17,7 @@ const App = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('news'); // Default to News Reports tab
 
   // Regional time zones
   const timeZones = [
@@ -24,8 +25,7 @@ const App = () => {
     { city: 'Jerusalem', timezone: 'Asia/Jerusalem', flag: '🇮🇱' },
     { city: 'Damascus', timezone: 'Asia/Damascus', flag: '🇸🇾' },
     { city: 'Tehran', timezone: 'Asia/Tehran', flag: '🇮🇷' },
-    { city: 'Baghdad', timezone: 'Asia/Baghdad', flag: '🇮🇶' },
-    { city: 'Cairo', timezone: 'Africa/Cairo', flag: '🇪🇬' }
+    { city: 'Baghdad', timezone: 'Asia/Baghdad', flag: '🇮🇶' }
   ];
 
   const fetchDashboardData = async () => {
@@ -487,18 +487,68 @@ const App = () => {
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-700/50 bg-slate-700/30">
             <div className="flex items-center">
               <Globe className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 text-blue-400" />
-              <h3 className="text-lg sm:text-xl font-bold text-slate-100 font-mono">RECENT INTELLIGENCE REPORTS</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-slate-100 font-mono">RECENT REPORTS & CHATTER</h3>
             </div>
           </div>
+          
+          {/* Tab Navigation */}
+          <div className="border-b border-slate-700/50">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('news')}
+                className={`px-4 sm:px-6 py-3 text-sm font-mono font-medium transition-colors duration-200 border-b-2 ${
+                  activeTab === 'news'
+                    ? 'border-blue-400 text-blue-400 bg-slate-700/20'
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-700/10'
+                }`}
+              >
+                📰 NEWS REPORTS
+              </button>
+              <button
+                onClick={() => setActiveTab('chatter')}
+                className={`px-4 sm:px-6 py-3 text-sm font-mono font-medium transition-colors duration-200 border-b-2 ${
+                  activeTab === 'chatter'
+                    ? 'border-blue-400 text-blue-400 bg-slate-700/20'
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-700/10'
+                }`}
+              >
+                💬 CHATTER
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
           <div className="divide-y divide-slate-700/50">
-            {events.length === 0 ? (
-              <div className="p-6 sm:p-8 text-center text-slate-400">
-                <Satellite className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-slate-600" />
-                <p className="font-mono text-sm sm:text-base">NO ACTIVE INTELLIGENCE FEEDS</p>
-                <p className="text-xs sm:text-sm mt-2 font-mono">Execute "COLLECT" to initialize data gathering operations</p>
-              </div>
-            ) : (
-              events.map((event, index) => (
+            {(() => {
+              // Filter events by tab
+              let filteredEvents = [];
+              if (activeTab === 'news') {
+                // News sources: RSS feeds and GDELT
+                filteredEvents = events.filter(event => 
+                  event.platform === 'rss' || event.platform === 'gdelt'
+                );
+              } else {
+                // Chatter sources: Reddit, Telegram, Discord, etc.
+                filteredEvents = events.filter(event => 
+                  event.platform === 'reddit' || event.platform === 'telegram' || event.platform === 'discord'
+                );
+              }
+
+              if (filteredEvents.length === 0) {
+                return (
+                  <div className="p-6 sm:p-8 text-center text-slate-400">
+                    <Satellite className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-slate-600" />
+                    <p className="font-mono text-sm sm:text-base">
+                      {activeTab === 'news' ? 'NO NEWS REPORTS AVAILABLE' : 'NO CHATTER DATA AVAILABLE'}
+                    </p>
+                    <p className="text-xs sm:text-sm mt-2 font-mono">
+                      Execute "COLLECT" to initialize {activeTab === 'news' ? 'news feed' : 'social media'} monitoring
+                    </p>
+                  </div>
+                );
+              }
+
+              return filteredEvents.map((event, index) => (
                 <div key={event.id || index} className="p-6 hover:bg-slate-700/20 transition-colors duration-200">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -557,8 +607,8 @@ const App = () => {
                     )}
                   </div>
                 </div>
-              ))
-            )}
+              ));
+            })()}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AlertTriangle, TrendingUp, Globe, Clock, RefreshCw, Shield, Activity, Satellite, Menu, X } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://29abe117e0df.ngrok-free.app';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://quix.ngrok.app';
 
 // Headers to bypass ngrok warning page
 const defaultHeaders = {

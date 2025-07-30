@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AlertTriangle, TrendingUp, Globe, Clock, RefreshCw, Shield, Activity, Satellite, Menu, X } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://29abe117e0df.ngrok-free.app';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://quix.ngrok.app';
 
 // Headers to bypass ngrok warning page
 const defaultHeaders = {
@@ -42,11 +42,21 @@ const App = () => {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/events?limit=20`, {
-        headers: defaultHeaders
-      });
-      const data = await response.json();
-      setEvents(data);
+      // Fetch both news and chatter separately
+      const [newsResponse, chatterResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/events/news?limit=10`, { headers: defaultHeaders }),
+        fetch(`${API_BASE_URL}/events/chatter?limit=10`, { headers: defaultHeaders })
+      ]);
+      
+      const newsData = await newsResponse.json();
+      const chatterData = await chatterResponse.json();
+      
+      // Combine and sort by timestamp for the general events state
+      const allEvents = [...newsData, ...chatterData].sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      
+      setEvents(allEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
     }

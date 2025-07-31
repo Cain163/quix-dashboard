@@ -438,7 +438,25 @@ const App = () => {
             <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-700/50 p-4 sm:p-6 shadow-xl">
               <h3 className="text-base sm:text-lg font-bold text-slate-100 mb-4 font-mono">7-DAY THREAT ANALYSIS</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={[...dashboardData.threat_trend].reverse()}>
+                <LineChart data={(() => {
+                    // Merge threat trend data with casualty events
+                    const trendData = [...dashboardData.threat_trend].reverse();
+                    
+                    // Add casualty events to the corresponding dates
+                    if (Array.isArray(casualtyEvents)) {
+                    casualtyEvents.forEach(event => {
+                        const eventDate = new Date(event.date_occurred).toISOString().split('T')[0];
+                        const trendPoint = trendData.find(trend => trend.date === eventDate);
+                        if (trendPoint) {
+                        trendPoint.actual_score = event.actual_score;
+                        trendPoint.casualties = event.casualties;
+                        trendPoint.event_title = event.title;
+                        }
+                    });
+                    }
+                    
+                    return trendData;
+                })()}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
                     <XAxis 
                     dataKey="date" 
@@ -483,15 +501,7 @@ const App = () => {
                     dot={{ fill: '#EF4444', strokeWidth: 2, r: 8 }}
                     activeDot={{ r: 10, stroke: '#EF4444', strokeWidth: 3, fill: '#FCA5A5' }}
                     name="Actual Event"
-                    data={casualtyEvents.filter(event => {
-                        const eventDate = new Date(event.date_occurred).toISOString().split('T')[0];
-                        return dashboardData.threat_trend.some(trend => trend.date === eventDate);
-                    }).map(event => ({
-                        date: new Date(event.date_occurred).toISOString().split('T')[0],
-                        actual_score: event.actual_score,
-                        casualties: event.casualties,
-                        title: event.title
-                    }))}
+                    connectNulls={false}
                     />
                 </LineChart>
                 </ResponsiveContainer>

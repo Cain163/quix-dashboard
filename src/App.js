@@ -459,7 +459,10 @@ const App = () => {
                     }}
                     formatter={(value, name, props) => {
                         if (name === 'threat_score') return [`${value}`, 'Predicted Threat'];
-                        if (name === 'actual_score') return [`${value} (${props.payload.casualties} casualties)`, 'Actual Event'];
+                        if (name === 'actual_score') {
+                        const casualties = props.payload?.casualties;
+                        return [`${value}${casualties ? ` (${casualties} casualties)` : ''}`, 'Actual Event'];
+                        }
                         return [value, name];
                     }}
                     />

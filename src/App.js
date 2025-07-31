@@ -186,9 +186,9 @@ const App = () => {
       </div>
 
       {/* Header */}
-      <div className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700/50 shadow-xl">
+      <div className="sticky top-0 z-50 bg-slate-800/90 backdrop-blur-sm border-b border-slate-700/50 shadow-xl">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          <div className="flex justify-between items-center py-1 sm:py-2">
+          <div className="flex justify-between items-center py-0.5 sm:py-0.1">
             <div className="flex items-center">
               {/* Mobile Logo - Smaller */}
               <svg width="120" height="60" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg" className="mr-2 sm:mr-4 sm:hidden">

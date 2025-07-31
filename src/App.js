@@ -100,6 +100,7 @@ const App = () => {
         headers: defaultHeaders
       });
       const data = await response.json();
+      console.log('Fetched casualty events:', data); 
       setCasualtyEvents(data);
     } catch (error) {
       console.error('Error fetching casualty events:', error);

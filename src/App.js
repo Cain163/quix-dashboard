@@ -18,6 +18,7 @@ const App = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('news'); // Default to News Reports tab
+  const [casualtyEvents, setCasualtyEvents] = useState([]);
 
   // Regional time zones
   const timeZones = [
@@ -76,7 +77,7 @@ const App = () => {
 
   const refreshData = async () => {
     setLoading(true);
-    await Promise.all([fetchDashboardData(), fetchEvents(), fetchSummary()]);
+    await Promise.all([fetchDashboardData(), fetchEvents(), fetchSummary(), fetchCasualtyEvents()]);
     setLastUpdated(new Date());
     setLoading(false);
   };
@@ -93,6 +94,18 @@ const App = () => {
     }
   };
 
+  const fetchCasualtyEvents = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/actual-events`, {
+        headers: defaultHeaders
+      });
+      const data = await response.json();
+      setCasualtyEvents(data);
+    } catch (error) {
+      console.error('Error fetching casualty events:', error);
+    }
+  };
+  
   useEffect(() => {
     refreshData();
     const interval = setInterval(refreshData, 300000);
@@ -426,35 +439,59 @@ const App = () => {
               <h3 className="text-base sm:text-lg font-bold text-slate-100 mb-4 font-mono">7-DAY THREAT ANALYSIS</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={[...dashboardData.threat_trend].reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
-                  <XAxis 
+                    <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+                    <XAxis 
                     dataKey="date" 
                     tick={{ fill: '#94a3b8', fontSize: 12 }}
                     tickLine={{ stroke: '#475569' }}
-                  />
-                  <YAxis 
+                    />
+                    <YAxis 
                     domain={[0, 100]} 
                     tick={{ fill: '#94a3b8', fontSize: 12 }}
                     tickLine={{ stroke: '#475569' }}
-                  />
-                  <Tooltip 
+                    />
+                    <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: '#1e293b', 
-                      border: '1px solid #475569',
-                      borderRadius: '6px',
-                      color: '#f1f5f9'
+                        backgroundColor: '#1e293b', 
+                        border: '1px solid #475569',
+                        borderRadius: '6px',
+                        color: '#f1f5f9'
                     }}
-                  />
-                  <Line 
+                    formatter={(value, name, props) => {
+                        if (name === 'threat_score') return [`${value}`, 'Predicted Threat'];
+                        if (name === 'actual_score') return [`${value} (${props.payload.casualties} casualties)`, 'Actual Event'];
+                        return [value, name];
+                    }}
+                    />
+                    <Line 
                     type="monotone" 
                     dataKey="threat_score" 
                     stroke="#3B82F6" 
                     strokeWidth={3}
                     dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
                     activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2, fill: '#60A5FA' }}
-                  />
+                    name="Predicted Threat"
+                    />
+                    <Line 
+                    type="monotone" 
+                    dataKey="actual_score" 
+                    stroke="#EF4444" 
+                    strokeWidth={0}
+                    dot={{ fill: '#EF4444', strokeWidth: 2, r: 8 }}
+                    activeDot={{ r: 10, stroke: '#EF4444', strokeWidth: 3, fill: '#FCA5A5' }}
+                    name="Actual Event"
+                    data={casualtyEvents.filter(event => {
+                        const eventDate = new Date(event.date_occurred).toISOString().split('T')[0];
+                        return dashboardData.threat_trend.some(trend => trend.date === eventDate);
+                    }).map(event => ({
+                        date: new Date(event.date_occurred).toISOString().split('T')[0],
+                        actual_score: event.actual_score,
+                        casualties: event.casualties,
+                        title: event.title
+                    }))}
+                    />
                 </LineChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
             </div>
           )}
 

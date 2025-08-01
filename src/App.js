@@ -424,13 +424,29 @@ const App = () => {
                 
                 <div className="text-xs sm:text-sm text-slate-300 leading-relaxed font-mono">
                     {(() => {
-                    // Extract just the executive summary paragraph
                     const fullText = summary.summary;
-                    const execMatch = fullText.match(/\*\*EXECUTIVE ASSESSMENT:\*\*(.*?)(?=\*\*|$)/s);
+                    
+                    // Extract the threat level line
+                    const threatLevelMatch = fullText.match(/\*\*THREAT LEVEL:.*?\*\*/);
+                    const threatLevelLine = threatLevelMatch ? threatLevelMatch[0] : '';
+                    
+                    // Extract executive summary (everything after EXECUTIVE ASSESSMENT until next ** section)
+                    const execMatch = fullText.match(/\*\*EXECUTIVE ASSESSMENT:\*\*(.*?)(?=\*\*[A-Z])/s);
                     const executiveSummary = execMatch ? execMatch[1].trim() : fullText.split('\n\n')[0];
+                    
+                    // Get everything after the executive summary for expanded view
+                    const afterExecMatch = fullText.match(/\*\*EXECUTIVE ASSESSMENT:\*\*.*?(\*\*[A-Z].*)/s);
+                    const remainingContent = afterExecMatch ? afterExecMatch[1] : '';
                     
                     return (
                         <div>
+                        {/* Always show threat level */}
+                        {threatLevelLine && (
+                            <div className="mb-4 pb-3 border-b border-slate-600/30" dangerouslySetInnerHTML={{
+                            __html: threatLevelLine.replace(/\*\*(.*?)\*\*/g, '<span class="text-yellow-400 font-bold">$1</span>')
+                            }} />
+                        )}
+                        
                         {/* Show only Executive Summary when collapsed */}
                         <div dangerouslySetInnerHTML={{
                             __html: executiveSummary
@@ -450,11 +466,11 @@ const App = () => {
                             {reportExpanded ? 'HIDE DETAILED ANALYSIS' : 'VIEW DETAILED ANALYSIS'}
                         </button>
                         
-                        {/* Show full report when expanded */}
-                        {reportExpanded && (
+                        {/* Show remaining content when expanded (without repeating executive summary) */}
+                        {reportExpanded && remainingContent && (
                             <div className="mt-4 pt-4 border-t border-slate-600/50">
                             <div dangerouslySetInnerHTML={{
-                                __html: fullText
+                                __html: remainingContent
                                 .replace(/\*\*(.*?)\*\*/g, '<span class="text-yellow-400 font-bold">$1</span>')
                                 .replace(/\n/g, '<br/>')
                                 .replace(/• /g, '<span class="text-blue-400">▸</span> ')

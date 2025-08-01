@@ -19,6 +19,7 @@ const App = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('news'); // Default to News Reports tab
   const [casualtyEvents, setCasualtyEvents] = useState([]);
+  const [reportExpanded, setReportExpanded] = useState(false);
 
   // Regional time zones
   const timeZones = [
@@ -419,16 +420,105 @@ const App = () => {
               </div>
             </div>
             <div className="bg-slate-900/50 rounded-lg p-3 sm:p-4 border border-slate-700/30">
-              <h3 className="text-sm sm:text-md font-bold text-slate-200 mb-3 font-mono">SITUATION REPORT:</h3>
-              <div className="text-xs sm:text-sm text-slate-300 leading-relaxed font-mono"
-                   dangerouslySetInnerHTML={{
-                     __html: summary.summary
-                       .replace(/\*\*(.*?)\*\*/g, '<span class="text-yellow-400 font-bold">$1</span>')
-                       .replace(/\n/g, '<br/>')
-                       .replace(/• /g, '<span class="text-blue-400">▸</span> ')
-                   }}>
-              </div>
-            </div>
+                <h3 className="text-sm sm:text-md font-bold text-slate-200 mb-3 font-mono">SITUATION REPORT:</h3> 
+                
+                <div className="text-xs sm:text-sm text-slate-300 leading-relaxed font-mono">
+                    {(() => {
+                    const sections = summary.summary.split('**');
+                    const executiveIndex = sections.findIndex(section => 
+                        section.toUpperCase().includes('EXECUTIVE ASSESSMENT')
+                    );
+                    
+                    if (executiveIndex === -1) {
+                        // Fallback: show first paragraph if no sections found
+                        const firstParagraph = summary.summary.split('\n\n')[0];
+                        return (
+                        <div>
+                            <div dangerouslySetInnerHTML={{
+                            __html: firstParagraph
+                                .replace(/\*\*(.*?)\*\*/g, '<span class="text-yellow-400 font-bold">$1</span>')
+                                .replace(/\n/g, '<br/>')
+                                .replace(/• /g, '<span class="text-blue-400">▸</span> ')
+                            }} />
+                            
+                            {summary.summary.length > firstParagraph.length && (
+                            <button
+                                onClick={() => setReportExpanded(!reportExpanded)}
+                                className="mt-3 flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200 text-xs font-mono"
+                            >
+                                <span className="mr-2">
+                                {reportExpanded ? '▼' : '▶'}
+                                </span>
+                                {reportExpanded ? 'COLLAPSE FULL REPORT' : 'EXPAND FULL REPORT'}
+                            </button>
+                            )}
+                            
+                            {reportExpanded && (
+                            <div className="mt-4 pt-4 border-t border-slate-600/50">
+                                <div dangerouslySetInnerHTML={{
+                                __html: summary.summary.substring(firstParagraph.length)
+                                    .replace(/\*\*(.*?)\*\*/g, '<span class="text-yellow-400 font-bold">$1</span>')
+                                    .replace(/\n/g, '<br/>')
+                                    .replace(/• /g, '<span class="text-blue-400">▸</span> ')
+                                }} />
+                            </div>
+                            )}
+                        </div>
+                        );
+                    }
+                    
+                    // Find executive summary section
+                    const executiveContent = sections[executiveIndex + 1]?.split('\n\n')[0] || '';
+                    
+                    return (
+                        <div>
+                        {/* Executive Summary - Always Visible */}
+                        <div className="mb-3">
+                            <span className="text-yellow-400 font-bold">EXECUTIVE ASSESSMENT:</span>
+                            <div className="mt-2" dangerouslySetInnerHTML={{
+                            __html: executiveContent
+                                .replace(/\n/g, '<br/>')
+                                .replace(/• /g, '<span class="text-blue-400">▸</span> ')
+                            }} />
+                        </div>
+                        
+                        {/* Expand/Collapse Button */}
+                        <button
+                            onClick={() => setReportExpanded(!reportExpanded)}
+                            className="flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200 text-xs font-mono mb-3"
+                        >
+                            <span className="mr-2">
+                            {reportExpanded ? '▼' : '▶'}
+                            </span>
+                            {reportExpanded ? 'COLLAPSE DETAILED ANALYSIS' : 'EXPAND DETAILED ANALYSIS'}
+                        </button>
+                        
+                        {/* Expanded Content */}
+                        {reportExpanded && (
+                            <div className="space-y-4 pt-3 border-t border-slate-600/50">
+                            {sections.slice(executiveIndex + 2).map((section, index) => {
+                                if (index % 2 === 0 && section.trim()) {
+                                const nextSection = sections[executiveIndex + 2 + index + 1];
+                                return (
+                                    <div key={index} className="mb-4">
+                                    <span className="text-yellow-400 font-bold">{section.trim()}:</span>
+                                    <div className="mt-2" dangerouslySetInnerHTML={{
+                                        __html: (nextSection || '')
+                                        .replace(/\n/g, '<br/>')
+                                        .replace(/• /g, '<span class="text-blue-400">▸</span> ')
+                                    }} />
+                                    </div>
+                                );
+                                }
+                                return null;
+                            })}
+                            </div>
+                        )}
+                        </div>
+                    );
+                    })()}
+                </div>
+                </div>
           </div>
         )}
 
@@ -480,7 +570,7 @@ const App = () => {
                         if (name === 'threat_score') return [`${value}`, 'Predicted Threat'];
                         if (name === 'actual_score') {
                         const casualties = props.payload?.casualties;
-                        return [`${value}${casualties ? ` (${casualties} casualties)` : ''}`, 'Actual Event'];
+                        return [`${value}${casualties ? ` (${casualties} casualties)` : ''}`, 'Casualty Event'];
                         }
                         return [value, name];
                     }}

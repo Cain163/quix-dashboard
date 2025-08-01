@@ -630,100 +630,160 @@ const App = () => {
               </button>
             </div>
           </div>
-
-          {/* Tab Content */}
-          <div className="divide-y divide-slate-700/50">
+            {/* Tab Content */}
+            <div className="divide-y divide-slate-700/50">
             {(() => {
-              // Filter events by tab
-              let filteredEvents = [];
-              if (activeTab === 'news') {
-                // News sources: RSS feeds and GDELT
+                // Filter events by tab
+                let filteredEvents = [];
+                if (activeTab === 'news') {
                 filteredEvents = events.filter(event => 
-                  event.platform === 'rss' || event.platform === 'gdelt'
+                    event.platform === 'rss' || event.platform === 'gdelt'
                 );
-              } else {
-                // Chatter sources: Reddit, Telegram, Discord, etc.
+                } else {
                 filteredEvents = events.filter(event => 
-                  event.platform === 'reddit' || event.platform === 'telegram' || event.platform === 'discord'
+                    event.platform === 'reddit' || event.platform === 'telegram' || event.platform === 'discord'
                 );
-              }
+                }
 
-              if (filteredEvents.length === 0) {
+                if (filteredEvents.length === 0) {
                 return (
-                  <div className="p-6 sm:p-8 text-center text-slate-400">
+                    <div className="p-6 sm:p-8 text-center text-slate-400">
                     <Satellite className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-slate-600" />
                     <p className="font-mono text-sm sm:text-base">
-                      {activeTab === 'news' ? 'NO NEWS REPORTS AVAILABLE' : 'NO CHATTER DATA AVAILABLE'}
+                        {activeTab === 'news' ? 'NO NEWS REPORTS AVAILABLE' : 'NO CHATTER DATA AVAILABLE'}
                     </p>
                     <p className="text-xs sm:text-sm mt-2 font-mono">
-                      Execute "COLLECT" to initialize {activeTab === 'news' ? 'news feed' : 'social media'} monitoring
+                        Execute "COLLECT" to initialize {activeTab === 'news' ? 'news feed' : 'social media'} monitoring
                     </p>
-                  </div>
-                );
-              }
-
-              return filteredEvents.map((event, index) => (
-                <div key={event.id || index} className="p-6 hover:bg-slate-700/20 transition-colors duration-200">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-3">
-                        <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono">
-                          {event.title}
-                        </h4>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
-                          event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
-                          event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
-                          'bg-green-900/30 text-green-400 border border-green-500/30'
-                        }`}>
-                          THREAT: {event.threat_score.toFixed(1)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                        {event.content && event.content.length > 200 
-                          ? event.content.substring(0, 200) + '...'
-                          : event.content || 'No content available'
-                        }
-                      </p>
-                      <div className="flex items-center text-xs text-slate-500 space-x-6 font-mono">
-                        <span className="flex items-center">
-                          <Globe className="h-3 w-3 mr-2" />
-                          SOURCE: {event.platform?.toUpperCase()} // {event.source}
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-2" />
-                          {formatTimestamp(event.timestamp)}
-                        </span>
-                      </div>
-                      {event.entities && event.entities.length > 0 && (
-                        <div className="mt-3">
-                          <div className="flex flex-wrap gap-2">
-                            {event.entities.slice(0, 5).map((entity, i) => (
-                              <span
-                                key={i}
-                                className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-blue-900/30 text-blue-300 border border-blue-500/30"
-                              >
-                                {entity}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                    {event.url && (
-                      <a
-                        href={event.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-4 text-blue-400 hover:text-blue-300 text-sm font-mono transition-colors duration-200"
-                      >
-                        VIEW SOURCE
-                      </a>
+                );
+                }
+
+                return filteredEvents.map((event, index) => (
+                <div key={event.id || index} className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
+                    {/* Mobile Layout */}
+                    <div className="block sm:hidden">
+                    <div className="flex justify-between items-start mb-3">
+                        <h4 className="text-sm font-semibold text-slate-100 font-mono flex-1 pr-3">
+                        {event.title}
+                        </h4>
+                        <div className="flex flex-col items-end space-y-2 flex-shrink-0">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${
+                            event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
+                            event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
+                            'bg-green-900/30 text-green-400 border border-green-500/30'
+                        }`}>
+                            {event.threat_score.toFixed(1)}
+                        </span>
+                        {event.url && (
+                            <a
+                            href={event.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 text-xs font-mono transition-colors duration-200"
+                            >
+                            VIEW SOURCE
+                            </a>
+                        )}
+                        </div>
+                    </div>
+                    
+                    {/* Full width description on mobile */}
+                    <p className="text-sm text-slate-300 mb-3 leading-relaxed">
+                        {event.content && event.content.length > 200 
+                        ? event.content.substring(0, 200) + '...'
+                        : event.content || 'No content available'
+                        }
+                    </p>
+                    
+                    <div className="flex items-center text-xs text-slate-500 space-x-4 font-mono mb-3">
+                        <span className="flex items-center">
+                        <Globe className="h-3 w-3 mr-1" />
+                        {event.platform?.toUpperCase()} // {event.source}
+                        </span>
+                        <span className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {formatTimestamp(event.timestamp)}
+                        </span>
+                    </div>
+                    
+                    {event.entities && event.entities.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                        {event.entities.slice(0, 5).map((entity, i) => (
+                            <span
+                            key={i}
+                            className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-blue-900/30 text-blue-300 border border-blue-500/30"
+                            >
+                            {entity}
+                            </span>
+                        ))}
+                        </div>
                     )}
-                  </div>
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:block">
+                    <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                        <div className="flex items-center mb-3">
+                            <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono">
+                            {event.title}
+                            </h4>
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
+                            event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
+                            event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
+                            'bg-green-900/30 text-green-400 border border-green-500/30'
+                            }`}>
+                            THREAT: {event.threat_score.toFixed(1)}
+                            </span>
+                        </div>
+                        <p className="text-sm text-slate-300 mb-4 leading-relaxed">
+                            {event.content && event.content.length > 200 
+                            ? event.content.substring(0, 200) + '...'
+                            : event.content || 'No content available'
+                            }
+                        </p>
+                        <div className="flex items-center text-xs text-slate-500 space-x-6 font-mono">
+                            <span className="flex items-center">
+                            <Globe className="h-3 w-3 mr-2" />
+                            SOURCE: {event.platform?.toUpperCase()} // {event.source}
+                            </span>
+                            <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-2" />
+                            {formatTimestamp(event.timestamp)}
+                            </span>
+                        </div>
+                        {event.entities && event.entities.length > 0 && (
+                            <div className="mt-3">
+                            <div className="flex flex-wrap gap-2">
+                                {event.entities.slice(0, 5).map((entity, i) => (
+                                <span
+                                    key={i}
+                                    className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-blue-900/30 text-blue-300 border border-blue-500/30"
+                                >
+                                    {entity}
+                                </span>
+                                ))}
+                            </div>
+                            </div>
+                        )}
+                        </div>
+                        {event.url && (
+                        <a
+                            href={event.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-4 text-blue-400 hover:text-blue-300 text-sm font-mono transition-colors duration-200"
+                        >
+                            VIEW SOURCE
+                        </a>
+                        )}
+                    </div>
+                    </div>
                 </div>
-              ));
+                ));
             })()}
-          </div>
+            </div>
         </div>
       </div>
     </div>

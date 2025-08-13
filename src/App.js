@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AlertTriangle, TrendingUp, Globe, Clock, RefreshCw, Shield, Activity, Satellite, Menu, X, Languages, Loader2 } from 'lucide-react';
 
@@ -231,18 +231,16 @@ const App = () => {
   // Event Item Component to handle state properly
   const EventItem = ({ event, index }) => {
     const [displayTitle, setDisplayTitle] = useState(event.title);
-    const [forceUpdate, setForceUpdate] = useState(0);
+    const titleRef = useRef(null);
 
     const updateDisplayTitle = (newTitle) => {
-      console.log('Updating display title from:', displayTitle, 'to:', newTitle);
+      console.log('Updating display title to:', newTitle);
       setDisplayTitle(newTitle);
-      setForceUpdate(prev => prev + 1); // Force re-render
+      // Also directly update the DOM as backup
+      if (titleRef.current) {
+        titleRef.current.textContent = newTitle;
+      }
     };
-
-    // Force re-render when displayTitle changes
-    useEffect(() => {
-      console.log('Display title changed to:', displayTitle);
-    }, [displayTitle]);
 
     return (
       <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
@@ -250,7 +248,7 @@ const App = () => {
         <div className="block sm:hidden">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 pr-3">
-              <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1" key={`mobile-${forceUpdate}`}>
+              <h4 ref={titleRef} className="text-sm font-semibold text-slate-100 font-mono mb-1">
                 {displayTitle}
               </h4>
               <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />
@@ -315,7 +313,7 @@ const App = () => {
             <div className="flex-1">
               <div className="flex items-start mb-3">
                 <div className="flex-1">
-                  <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1" key={`desktop-${forceUpdate}`}>
+                  <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
                     {displayTitle}
                   </h4>
                   <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />

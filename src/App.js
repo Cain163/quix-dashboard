@@ -23,20 +23,17 @@ const App = () => {
 
   // Translation component with auto-detection
   const TranslationButton = ({ eventId, title }) => {
-    const [translations, setTranslations] = useState({});
-    const [loading, setLoading] = useState(null);
-    const [activeLanguage, setActiveLanguage] = useState('original');
+    const [translation, setTranslation] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [showTranslation, setShowTranslation] = useState(false);
 
-    const translateText = async (language) => {
-      const key = `${eventId}-${language}`;
-      
-      // If already translated, just show it
-      if (translations[key]) {
-        setActiveLanguage(language);
+    const translateToEnglish = async () => {
+      if (translation) {
+        setShowTranslation(!showTranslation);
         return;
       }
 
-      setLoading(language);
+      setLoading(true);
       
       try {
         const response = await fetch(`${API_BASE_URL}/translate`, {
@@ -45,91 +42,51 @@ const App = () => {
             'Content-Type': 'application/x-www-form-urlencoded',
             ...defaultHeaders
           },
-          body: `text=${encodeURIComponent(title)}&target_language=${language}`
+          body: `text=${encodeURIComponent(title)}&target_language=english`
         });
 
         if (response.ok) {
           const data = await response.json();
           
-          // Handle case where no translation is needed
           if (data.no_translation_needed) {
-            setTranslations(prev => ({
-              ...prev,
-              [key]: `[Already in ${language}]`
-            }));
+            setTranslation('[Already in English]');
           } else {
-            setTranslations(prev => ({
-              ...prev,
-              [key]: data.translated_text
-            }));
+            setTranslation(data.translated_text);
           }
-          setActiveLanguage(language);
+          setShowTranslation(true);
         } else {
           console.error('Translation failed');
         }
       } catch (error) {
         console.error('Translation error:', error);
       } finally {
-        setLoading(null);
+        setLoading(false);
       }
     };
-
-    const getCurrentText = () => {
-      if (activeLanguage === 'original') {
-        return title;
-      }
-      const key = `${eventId}-${activeLanguage}`;
-      return translations[key] || title;
-    };
-
-    const isActive = (lang) => activeLanguage === lang;
 
     return (
       <div className="mt-2">
-        <div className="flex items-center space-x-2 mb-2">
-          <Languages className="h-3 w-3 text-slate-400" />
-          <span className="text-xs text-slate-400 font-mono">TRANSLATE:</span>
-          
-          <button
-            onClick={() => setActiveLanguage('original')}
-            className={`px-2 py-1 text-xs font-mono rounded border transition-colors duration-200 ${
-              isActive('original') 
-                ? 'bg-green-600/50 text-green-300 border-green-500/50' 
-                : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 border-slate-600/50'
-            }`}
-          >
-            ORIG
-          </button>
-          
-          {['english', 'arabic', 'hebrew', 'turkish'].map((lang) => {
-            const displayCode = lang === 'english' ? 'EN' : lang.substring(0, 2).toUpperCase();
-            return (
-              <button
-                key={lang}
-                onClick={() => translateText(lang)}
-                disabled={loading === lang}
-                className={`px-2 py-1 text-xs font-mono rounded border transition-colors duration-200 disabled:opacity-50 flex items-center ${
-                  isActive(lang)
-                    ? 'bg-blue-600/50 text-blue-300 border-blue-500/50'
-                    : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 border-slate-600/50'
-                }`}
-              >
-                {loading === lang ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    {displayCode}
-                  </>
-                ) : (
-                  displayCode
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <button
+          onClick={translateToEnglish}
+          disabled={loading}
+          className="flex items-center px-2 py-1 text-xs font-mono bg-slate-700/50 hover:bg-blue-600/50 text-slate-300 rounded border border-slate-600/50 transition-colors duration-200 disabled:opacity-50"
+        >
+          <Languages className="h-3 w-3 mr-1" />
+          {loading ? (
+            <>
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              TRANSLATING...
+            </>
+          ) : (
+            <>
+              {showTranslation ? 'HIDE' : 'TRANSLATE'}
+            </>
+          )}
+        </button>
         
-        {activeLanguage !== 'original' && (
-          <div className="text-sm text-blue-300 bg-slate-800/50 p-2 rounded border-l-2 border-blue-400 font-mono">
-            {getCurrentText()}
+        {showTranslation && translation && (
+          <div className="text-sm text-blue-300 bg-slate-800/50 p-2 mt-2 rounded border-l-2 border-blue-400 font-mono">
+            {translation}
           </div>
         )}
       </div>

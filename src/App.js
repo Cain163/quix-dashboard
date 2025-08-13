@@ -23,7 +23,7 @@ const App = () => {
 
   // Simple translation that replaces the title
   const TranslationButton = ({ eventId, title, setDisplayTitle }) => {
-    const [loading, setLoading] = useState(false);
+    const [translationLoading, setTranslationLoading] = useState(false);
     const [isTranslated, setIsTranslated] = useState(false);
     const [originalTitle] = useState(title);
     const [translatedTitle, setTranslatedTitle] = useState('');
@@ -44,7 +44,7 @@ const App = () => {
       }
 
       // Translate for first time
-      setLoading(true);
+      setTranslationLoading(true);
       try {
         const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(title)}&target_language=english`, {
           method: 'POST',
@@ -66,18 +66,18 @@ const App = () => {
       } catch (error) {
         console.error('Translation failed');
       } finally {
-        setLoading(false);
+        setTranslationLoading(false);
       }
     };
 
     return (
       <button
         onClick={toggleTranslation}
-        disabled={loading}
+        disabled={translationLoading}
         className="flex items-center px-2 py-1 text-xs font-mono bg-slate-700/50 hover:bg-blue-600/50 text-slate-300 rounded border border-slate-600/50 transition-colors duration-200"
       >
         <Languages className="h-3 w-3 mr-1" />
-        {loading ? 'TRANSLATING...' : (isTranslated ? 'ORIGINAL' : 'TRANSLATE')}
+        {translationLoading ? 'TRANSLATING...' : (isTranslated ? 'ORIGINAL' : 'TRANSLATE')}
       </button>
     );
   };
@@ -687,8 +687,8 @@ const App = () => {
               <h3 className="text-base sm:text-lg font-bold text-slate-100 mb-4 font-mono">7-DAY THREAT ANALYSIS</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={(() => {
-                    // Merge threat trend data with casualty events
-                    const trendData = [...dashboardData.threat_trend].reverse();
+                    // Merge threat trend data with casualty events - KEEP chronological order
+                    const trendData = [...dashboardData.threat_trend]; // Don't reverse!
                     
                     // Add casualty events to the corresponding dates
                     if (Array.isArray(casualtyEvents)) {

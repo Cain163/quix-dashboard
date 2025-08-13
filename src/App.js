@@ -20,74 +20,64 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('news');
   const [casualtyEvents, setCasualtyEvents] = useState([]);
   const [reportExpanded, setReportExpanded] = useState(false);
+  const [translations, setTranslations] = useState({}); // Store all translations here
+  const [translationLoading, setTranslationLoading] = useState({});
+
+  // Translation function at App level
+  const translateTitle = async (eventId, originalTitle) => {
+    const key = `${eventId}`;
+    
+    // If already translated, toggle back to original
+    if (translations[key]) {
+      setTranslations(prev => ({
+        ...prev,
+        [key]: null
+      }));
+      return;
+    }
+
+    setTranslationLoading(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(originalTitle)}&target_language=english`, {
+        method: 'POST',
+        headers: {
+          ...defaultHeaders
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const translated = data.translated_text || originalTitle;
+        
+        setTranslations(prev => ({
+          ...prev,
+          [key]: translated
+        }));
+        
+        console.log('Translation stored for event', eventId, ':', translated);
+      }
+    } catch (error) {
+      console.error('Translation failed:', error);
+    } finally {
+      setTranslationLoading(prev => ({ ...prev, [key]: false }));
+    }
+  };
 
   // Simple translation that replaces the title
-  const TranslationButton = ({ eventId, title, setDisplayTitle }) => {
-    const [translationLoading, setTranslationLoading] = useState(false);
-    const [isTranslated, setIsTranslated] = useState(false);
-    const [originalTitle] = useState(title);
-    const [translatedTitle, setTranslatedTitle] = useState('');
-
-    const toggleTranslation = async () => {
-      console.log('Toggle translation clicked, isTranslated:', isTranslated);
-      
-      if (isTranslated) {
-        // Show original
-        console.log('Showing original:', originalTitle);
-        setDisplayTitle(originalTitle);
-        setIsTranslated(false);
-        return;
-      }
-      
-      if (translatedTitle) {
-        // Show cached translation
-        console.log('Showing cached translation:', translatedTitle);
-        setDisplayTitle(translatedTitle);
-        setIsTranslated(true);
-        return;
-      }
-
-      // Translate for first time
-      console.log('Starting translation for:', title);
-      setTranslationLoading(true);
-      try {
-        const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(title)}&target_language=english`, {
-          method: 'POST',
-          headers: {
-            ...defaultHeaders
-          }
-        });
-
-        console.log('Response status:', response.status);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Translation response data:', data);
-          const translated = data.translated_text || title;
-          console.log('Setting translated title to:', translated);
-          setTranslatedTitle(translated);
-          console.log('About to call setDisplayTitle with:', translated);
-          setDisplayTitle(translated);
-          console.log('Called setDisplayTitle, now setting isTranslated to true');
-          setIsTranslated(true);
-          console.log('Translation state updated');
-        } else {
-          console.error('Translation failed:', response.status);
-        }
-      } catch (error) {
-        console.error('Translation failed:', error);
-      } finally {
-        setTranslationLoading(false);
-      }
-    };
+  const TranslationButton = ({ eventId, title }) => {
+    const key = `${eventId}`;
+    const isTranslated = translations[key] !== undefined && translations[key] !== null;
+    const isLoading = translationLoading[key];
 
     return (
       <button
-        onClick={toggleTranslation}
-        disabled={translationLoading}
+        onClick={() => translateTitle(eventId, title)}
+        disabled={isLoading}
         className="flex items-center px-2 py-1 text-xs font-mono bg-slate-700/50 hover:bg-blue-600/50 text-slate-300 rounded border border-slate-600/50 transition-colors duration-200"
       >
         <Languages className="h-3 w-3 mr-1" />
-        {translationLoading ? 'TRANSLATING...' : (isTranslated ? 'ORIGINAL' : 'TRANSLATE')}
+        {isLoading ? 'TRANSLATING...' : (isTranslated ? 'ORIGINAL' : 'TRANSLATE')}
       </button>
     );
   };
@@ -228,30 +218,21 @@ const App = () => {
     setMobileMenuOpen(false);
   };
 
-  // Event Item Component to handle state properly
+  // Event Item Component - now gets title from translations state
   const EventItem = ({ event, index }) => {
-    const [displayTitle, setDisplayTitle] = useState(event.title);
-    const titleRef = useRef(null);
-
-    const updateDisplayTitle = (newTitle) => {
-      console.log('Updating display title to:', newTitle);
-      setDisplayTitle(newTitle);
-      // Also directly update the DOM as backup
-      if (titleRef.current) {
-        titleRef.current.textContent = newTitle;
-      }
-    };
+    const eventKey = `${event.id || index}`;
+    const displayTitle = translations[eventKey] || event.title;
 
     return (
-      <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
+      <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200" data-event-id={event.id || index}>
         {/* Mobile Layout */}
         <div className="block sm:hidden">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 pr-3">
-              <h4 ref={titleRef} className="text-sm font-semibold text-slate-100 font-mono mb-1">
+              <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
                 {displayTitle}
               </h4>
-              <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />
+              <TranslationButton eventId={event.id || index} title={event.title} />
             </div>
             <div className="flex flex-col items-end space-y-2 flex-shrink-0">
               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${
@@ -316,7 +297,7 @@ const App = () => {
                   <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
                     {displayTitle}
                   </h4>
-                  <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />
+                  <TranslationButton eventId={event.id || index} title={event.title} />
                 </div>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
                   event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :

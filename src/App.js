@@ -17,7 +17,7 @@ const App = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('news'); // Default to News Reports tab
+  const [activeTab, setActiveTab] = useState('news');
   const [casualtyEvents, setCasualtyEvents] = useState([]);
   const [reportExpanded, setReportExpanded] = useState(false);
 
@@ -46,9 +46,16 @@ const App = () => {
       // Translate for first time
       setLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(title)}&target_language=english`, {
+        const response = await fetch(`${API_BASE_URL}/translate`, {
           method: 'POST',
-          headers: { ...defaultHeaders }
+          headers: {
+            'Content-Type': 'application/json',
+            ...defaultHeaders
+          },
+          body: JSON.stringify({
+            text: title,
+            target_language: 'english'
+          })
         });
 
         if (response.ok) {
@@ -100,7 +107,6 @@ const App = () => {
 
   const fetchEvents = async () => {
     try {
-      // Fetch both news and chatter separately
       const [newsResponse, chatterResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/events/news?limit=10`, { headers: defaultHeaders }),
         fetch(`${API_BASE_URL}/events/chatter?limit=10`, { headers: defaultHeaders })
@@ -109,7 +115,6 @@ const App = () => {
       const newsData = await newsResponse.json();
       const chatterData = await chatterResponse.json();
       
-      // Combine and sort by timestamp for the general events state
       const allEvents = [...newsData, ...chatterData].sort((a, b) => 
         new Date(b.timestamp) - new Date(a.timestamp)
       );
@@ -223,14 +228,14 @@ const App = () => {
       <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
         {/* Mobile Layout */}
         <div className="block sm:hidden">
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-start mb-3">
             <div className="flex-1 pr-3">
               <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
                 {displayTitle}
               </h4>
               <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={setDisplayTitle} />
             </div>
-            <div className="flex flex-col items-center space-y-2 flex-shrink-0">
+            <div className="flex flex-col items-end space-y-2 flex-shrink-0">
               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${
                 event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
                 event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
@@ -286,9 +291,9 @@ const App = () => {
 
         {/* Desktop Layout */}
         <div className="hidden sm:block">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center mb-3">
+              <div className="flex items-start mb-3">
                 <div className="flex-1">
                   <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
                     {displayTitle}

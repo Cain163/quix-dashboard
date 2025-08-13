@@ -239,13 +239,18 @@ const App = () => {
       setForceUpdate(prev => prev + 1); // Force re-render
     };
 
+    // Force re-render when displayTitle changes
+    useEffect(() => {
+      console.log('Display title changed to:', displayTitle);
+    }, [displayTitle]);
+
     return (
       <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
         {/* Mobile Layout */}
         <div className="block sm:hidden">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1 pr-3">
-              <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
+              <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1" key={`mobile-${forceUpdate}`}>
                 {displayTitle}
               </h4>
               <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />
@@ -310,7 +315,7 @@ const App = () => {
             <div className="flex-1">
               <div className="flex items-start mb-3">
                 <div className="flex-1">
-                  <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
+                  <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1" key={`desktop-${forceUpdate}`}>
                     {displayTitle}
                   </h4>
                   <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />

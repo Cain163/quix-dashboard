@@ -46,16 +46,11 @@ const App = () => {
       // Translate for first time
       setLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/translate`, {
+        const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(title)}&target_language=english`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             ...defaultHeaders
-          },
-          body: JSON.stringify({
-            text: title,
-            target_language: 'english'
-          })
+          }
         });
 
         if (response.ok) {

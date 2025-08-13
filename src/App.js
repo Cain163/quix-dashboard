@@ -55,10 +55,13 @@ const App = () => {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Translation response:', data); // Debug log
           const translated = data.translated_text || title;
           setTranslatedTitle(translated);
           setDisplayTitle(translated);
           setIsTranslated(true);
+        } else {
+          console.error('Translation failed:', response.status);
         }
       } catch (error) {
         console.error('Translation failed');

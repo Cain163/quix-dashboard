@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { AlertTriangle, TrendingUp, Globe, Clock, RefreshCw, Shield, Activity, Satellite, Menu, X } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Globe, Clock, RefreshCw, Shield, Activity, Satellite, Menu, X, Languages, Loader2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://quix.ngrok.app';
 
@@ -20,6 +20,121 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('news'); // Default to News Reports tab
   const [casualtyEvents, setCasualtyEvents] = useState([]);
   const [reportExpanded, setReportExpanded] = useState(false);
+
+  // Translation component with auto-detection
+  const TranslationButton = ({ eventId, title }) => {
+    const [translations, setTranslations] = useState({});
+    const [loading, setLoading] = useState(null);
+    const [activeLanguage, setActiveLanguage] = useState('original');
+
+    const translateText = async (language) => {
+      const key = `${eventId}-${language}`;
+      
+      // If already translated, just show it
+      if (translations[key]) {
+        setActiveLanguage(language);
+        return;
+      }
+
+      setLoading(language);
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/translate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            ...defaultHeaders
+          },
+          body: `text=${encodeURIComponent(title)}&target_language=${language}`
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Handle case where no translation is needed
+          if (data.no_translation_needed) {
+            setTranslations(prev => ({
+              ...prev,
+              [key]: `[Already in ${language}]`
+            }));
+          } else {
+            setTranslations(prev => ({
+              ...prev,
+              [key]: data.translated_text
+            }));
+          }
+          setActiveLanguage(language);
+        } else {
+          console.error('Translation failed');
+        }
+      } catch (error) {
+        console.error('Translation error:', error);
+      } finally {
+        setLoading(null);
+      }
+    };
+
+    const getCurrentText = () => {
+      if (activeLanguage === 'original') {
+        return title;
+      }
+      const key = `${eventId}-${activeLanguage}`;
+      return translations[key] || title;
+    };
+
+    const isActive = (lang) => activeLanguage === lang;
+
+    return (
+      <div className="mt-2">
+        <div className="flex items-center space-x-2 mb-2">
+          <Languages className="h-3 w-3 text-slate-400" />
+          <span className="text-xs text-slate-400 font-mono">TRANSLATE:</span>
+          
+          <button
+            onClick={() => setActiveLanguage('original')}
+            className={`px-2 py-1 text-xs font-mono rounded border transition-colors duration-200 ${
+              isActive('original') 
+                ? 'bg-green-600/50 text-green-300 border-green-500/50' 
+                : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 border-slate-600/50'
+            }`}
+          >
+            ORIG
+          </button>
+          
+          {['english', 'arabic', 'hebrew', 'turkish'].map((lang) => {
+            const displayCode = lang === 'english' ? 'EN' : lang.substring(0, 2).toUpperCase();
+            return (
+              <button
+                key={lang}
+                onClick={() => translateText(lang)}
+                disabled={loading === lang}
+                className={`px-2 py-1 text-xs font-mono rounded border transition-colors duration-200 disabled:opacity-50 flex items-center ${
+                  isActive(lang)
+                    ? 'bg-blue-600/50 text-blue-300 border-blue-500/50'
+                    : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 border-slate-600/50'
+                }`}
+              >
+                {loading === lang ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    {displayCode}
+                  </>
+                ) : (
+                  displayCode
+                )}
+              </button>
+            );
+          })}
+        </div>
+        
+        {activeLanguage !== 'original' && (
+          <div className="text-sm text-blue-300 bg-slate-800/50 p-2 rounded border-l-2 border-blue-400 font-mono">
+            {getCurrentText()}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Regional time zones
   const timeZones = [
@@ -664,9 +779,12 @@ const App = () => {
                     {/* Mobile Layout */}
                     <div className="block sm:hidden">
                     <div className="flex justify-between items-start mb-3">
-                        <h4 className="text-sm font-semibold text-slate-100 font-mono flex-1 pr-3">
-                        {event.title}
-                        </h4>
+                        <div className="flex-1 pr-3">
+                            <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
+                            {event.title}
+                            </h4>
+                            <TranslationButton eventId={event.id || index} title={event.title} />
+                        </div>
                         <div className="flex flex-col items-end space-y-2 flex-shrink-0">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${
                             event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
@@ -726,17 +844,20 @@ const App = () => {
                     <div className="flex items-start justify-between">
                         <div className="flex-1">
                         <div className="flex items-center mb-3">
-                            <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono">
-                            {event.title}
-                            </h4>
+                            <div className="flex-1">
+                                <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
+                                {event.title}
+                                </h4>
+                                <TranslationButton eventId={event.id || index} title={event.title} />
+                            </div>
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
-                            event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
-                            event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
-                            'bg-green-900/30 text-green-400 border border-green-500/30'
+                                event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
+                                event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
+                                'bg-green-900/30 text-green-400 border border-green-500/30'
                             }`}>
-                            THREAT: {event.threat_score.toFixed(1)}
+                                THREAT: {event.threat_score.toFixed(1)}
                             </span>
-                        </div>
+                            </div>
                         <p className="text-sm text-slate-300 mb-4 leading-relaxed">
                             {event.content && event.content.length > 200 
                             ? event.content.substring(0, 200) + '...'

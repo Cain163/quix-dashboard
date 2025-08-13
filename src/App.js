@@ -229,6 +229,13 @@ const App = () => {
   // Event Item Component to handle state properly
   const EventItem = ({ event, index }) => {
     const [displayTitle, setDisplayTitle] = useState(event.title);
+    const [forceUpdate, setForceUpdate] = useState(0);
+
+    const updateDisplayTitle = (newTitle) => {
+      console.log('Updating display title from:', displayTitle, 'to:', newTitle);
+      setDisplayTitle(newTitle);
+      setForceUpdate(prev => prev + 1); // Force re-render
+    };
 
     return (
       <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
@@ -239,7 +246,7 @@ const App = () => {
               <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
                 {displayTitle}
               </h4>
-              <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={setDisplayTitle} />
+              <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />
             </div>
             <div className="flex flex-col items-end space-y-2 flex-shrink-0">
               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${

@@ -9,6 +9,24 @@ const defaultHeaders = {
   'ngrok-skip-browser-warning': 'true'
 };
 
+  // Simple translation that replaces the title
+  const TranslationButton = ({ eventId, title }) => {
+    const key = `${eventId}`;
+    const isTranslated = translations[key] !== undefined && translations[key] !== null;
+    const isLoading = translationLoading[key];
+
+    return (
+      <button
+        onClick={() => translateTitle(eventId, title)}
+        disabled={isLoading}
+        className="flex items-center px-2 py-1 text-xs font-mono bg-slate-700/50 hover:bg-blue-600/50 text-slate-300 rounded border border-slate-600/50 transition-colors duration-200"
+      >
+        <Languages className="h-3 w-3 mr-1" />
+        {isLoading ? 'TRANSLATING...' : (isTranslated ? 'ORIGINAL' : 'TRANSLATE')}
+      </button>
+    );
+  };
+
 const App = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [events, setEvents] = useState([]);
@@ -63,24 +81,6 @@ const App = () => {
       setTranslationLoading(prev => ({ ...prev, [key]: false }));
     }
   };
-
-  // Simple translation that replaces the title
-  const TranslationButton = ({ eventId, title }) => {
-    const key = `${eventId}`;
-    const isTranslated = translations[key] !== undefined && translations[key] !== null;
-    const isLoading = translationLoading[key];
-
-    return (
-      <button
-        onClick={() => translateTitle(eventId, title)}
-        disabled={isLoading}
-        className="flex items-center px-2 py-1 text-xs font-mono bg-slate-700/50 hover:bg-blue-600/50 text-slate-300 rounded border border-slate-600/50 transition-colors duration-200"
-      >
-        <Languages className="h-3 w-3 mr-1" />
-        {isLoading ? 'TRANSLATING...' : (isTranslated ? 'ORIGINAL' : 'TRANSLATE')}
-      </button>
-    );
-  });
 
   // Regional time zones
   const timeZones = [
@@ -219,7 +219,7 @@ const App = () => {
   };
 
   // Event Item Component - now gets title from translations state
-  const EventItem = React.memo(({ event, index }) => {
+  const EventItem = ({ event, index }) => {
     const eventKey = `${event.id || index}`;
     const displayTitle = translations[eventKey] || event.title;
 
@@ -232,7 +232,7 @@ const App = () => {
               <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
                 {displayTitle}
               </h4>
-              <TranslationButton eventId={event.id || index} title={event.title} />
+              <TranslationButton eventId={event.id || index} title={event.title} translateTitle={translateTitle} translations={translations} translationLoading={translationLoading} />
             </div>
             <div className="flex flex-col items-end space-y-2 flex-shrink-0">
               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${
@@ -297,7 +297,7 @@ const App = () => {
                   <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
                     {displayTitle}
                   </h4>
-                  <TranslationButton eventId={event.id || index} title={event.title} />
+                  <TranslationButton eventId={event.id || index} title={event.title} translateTitle={translateTitle} translations={translations} translationLoading={translationLoading} />
                 </div>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
                   event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :

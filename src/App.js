@@ -21,73 +21,59 @@ const App = () => {
   const [casualtyEvents, setCasualtyEvents] = useState([]);
   const [reportExpanded, setReportExpanded] = useState(false);
 
-  // Translation component with auto-detection
-  const TranslationButton = ({ eventId, title }) => {
-    const [translation, setTranslation] = useState(null);
+  // Simple translation that replaces the title
+  const TranslationButton = ({ eventId, title, setDisplayTitle }) => {
     const [loading, setLoading] = useState(false);
-    const [showTranslation, setShowTranslation] = useState(false);
+    const [isTranslated, setIsTranslated] = useState(false);
+    const [originalTitle] = useState(title);
+    const [translatedTitle, setTranslatedTitle] = useState('');
 
-    const translateToEnglish = async () => {
-      if (translation) {
-        setShowTranslation(!showTranslation);
+    const toggleTranslation = async () => {
+      if (isTranslated) {
+        // Show original
+        setDisplayTitle(originalTitle);
+        setIsTranslated(false);
+        return;
+      }
+      
+      if (translatedTitle) {
+        // Show cached translation
+        setDisplayTitle(translatedTitle);
+        setIsTranslated(true);
         return;
       }
 
+      // Translate for first time
       setLoading(true);
-      
       try {
         const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(title)}&target_language=english`, {
-            method: 'POST',
-            headers: {
-              ...defaultHeaders
-            }
-          });
+          method: 'POST',
+          headers: { ...defaultHeaders }
+        });
 
         if (response.ok) {
           const data = await response.json();
-          
-          if (data.no_translation_needed) {
-            setTranslation('[Already in English]');
-          } else {
-            setTranslation(data.translated_text);
-          }
-          setShowTranslation(true);
-        } else {
-          console.error('Translation failed');
+          const translated = data.translated_text || title;
+          setTranslatedTitle(translated);
+          setDisplayTitle(translated);
+          setIsTranslated(true);
         }
       } catch (error) {
-        console.error('Translation error:', error);
+        console.error('Translation failed');
       } finally {
         setLoading(false);
       }
     };
 
     return (
-      <div className="mt-2">
-        <button
-          onClick={translateToEnglish}
-          disabled={loading}
-          className="flex items-center px-2 py-1 text-xs font-mono bg-slate-700/50 hover:bg-blue-600/50 text-slate-300 rounded border border-slate-600/50 transition-colors duration-200 disabled:opacity-50"
-        >
-          <Languages className="h-3 w-3 mr-1" />
-          {loading ? (
-            <>
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              TRANSLATING...
-            </>
-          ) : (
-            <>
-              {showTranslation ? 'HIDE' : 'TRANSLATE'}
-            </>
-          )}
-        </button>
-        
-        {showTranslation && translation && (
-          <div className="text-sm text-blue-300 bg-slate-800/50 p-2 mt-2 rounded border-l-2 border-blue-400 font-mono">
-            {translation}
-          </div>
-        )}
-      </div>
+      <button
+        onClick={toggleTranslation}
+        disabled={loading}
+        className="flex items-center px-2 py-1 text-xs font-mono bg-slate-700/50 hover:bg-blue-600/50 text-slate-300 rounded border border-slate-600/50 transition-colors duration-200"
+      >
+        <Languages className="h-3 w-3 mr-1" />
+        {loading ? 'TRANSLATING...' : (isTranslated ? 'ORIGINAL' : 'TRANSLATE')}
+      </button>
     );
   };
 
@@ -227,6 +213,141 @@ const App = () => {
   const scrollToSection = (sectionId) => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
     setMobileMenuOpen(false);
+  };
+
+  // Event Item Component to handle state properly
+  const EventItem = ({ event, index }) => {
+    const [displayTitle, setDisplayTitle] = useState(event.title);
+
+    return (
+      <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
+        {/* Mobile Layout */}
+        <div className="block sm:hidden">
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex-1 pr-3">
+              <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
+                {displayTitle}
+              </h4>
+              <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={setDisplayTitle} />
+            </div>
+            <div className="flex flex-col items-center space-y-2 flex-shrink-0">
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${
+                event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
+                event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
+                'bg-green-900/30 text-green-400 border border-green-500/30'
+              }`}>
+                {event.threat_score.toFixed(1)}
+              </span>
+              {event.url && (
+                <a
+                  href={event.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 text-xs font-mono transition-colors duration-200"
+                >
+                  VIEW SOURCE
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Full width description on mobile */}
+          <p className="text-sm text-slate-300 mb-3 leading-relaxed">
+            {event.content && event.content.length > 200 
+              ? event.content.substring(0, 200) + '...'
+              : event.content || 'No content available'
+            }
+          </p>
+          
+          <div className="flex items-center text-xs text-slate-500 space-x-4 font-mono mb-3">
+            <span className="flex items-center">
+              <Globe className="h-3 w-3 mr-1" />
+              {event.platform?.toUpperCase()} // {event.source}
+            </span>
+            <span className="flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              {formatTimestamp(event.timestamp)}
+            </span>
+          </div>
+          
+          {event.entities && event.entities.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {event.entities.slice(0, 5).map((entity, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-blue-900/30 text-blue-300 border border-blue-500/30"
+                >
+                  {entity}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden sm:block">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center mb-3">
+                <div className="flex-1">
+                  <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
+                    {displayTitle}
+                  </h4>
+                  <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={setDisplayTitle} />
+                </div>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
+                  event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
+                  event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
+                  'bg-green-900/30 text-green-400 border border-green-500/30'
+                }`}>
+                  THREAT: {event.threat_score.toFixed(1)}
+                </span>
+              </div>
+              <p className="text-sm text-slate-300 mb-4 leading-relaxed">
+                {event.content && event.content.length > 200 
+                  ? event.content.substring(0, 200) + '...'
+                  : event.content || 'No content available'
+                }
+              </p>
+              <div className="flex items-center text-xs text-slate-500 space-x-6 font-mono">
+                <span className="flex items-center">
+                  <Globe className="h-3 w-3 mr-2" />
+                  SOURCE: {event.platform?.toUpperCase()} // {event.source}
+                </span>
+                <span className="flex items-center">
+                  <Clock className="h-3 w-3 mr-2" />
+                  {formatTimestamp(event.timestamp)}
+                </span>
+              </div>
+              {event.entities && event.entities.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex flex-wrap gap-2">
+                    {event.entities.slice(0, 5).map((entity, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-blue-900/30 text-blue-300 border border-blue-500/30"
+                      >
+                        {entity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {event.url && (
+              <a
+                href={event.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-4 text-blue-400 hover:text-blue-300 text-sm font-mono transition-colors duration-200"
+              >
+                VIEW SOURCE
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading && !dashboardData) {
@@ -730,133 +851,7 @@ const App = () => {
                 }
 
                 return filteredEvents.map((event, index) => (
-                <div key={event.id || index} className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200">
-                    {/* Mobile Layout */}
-                    <div className="block sm:hidden">
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1 pr-3">
-                            <h4 className="text-sm font-semibold text-slate-100 font-mono mb-1">
-                            {event.title}
-                            </h4>
-                            <TranslationButton eventId={event.id || index} title={event.title} />
-                        </div>
-                        <div className="flex flex-col items-end space-y-2 flex-shrink-0">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold font-mono ${
-                            event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
-                            event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
-                            'bg-green-900/30 text-green-400 border border-green-500/30'
-                        }`}>
-                            {event.threat_score.toFixed(1)}
-                        </span>
-                        {event.url && (
-                            <a
-                            href={event.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 text-xs font-mono transition-colors duration-200"
-                            >
-                            VIEW SOURCE
-                            </a>
-                        )}
-                        </div>
-                    </div>
-                    
-                    {/* Full width description on mobile */}
-                    <p className="text-sm text-slate-300 mb-3 leading-relaxed">
-                        {event.content && event.content.length > 200 
-                        ? event.content.substring(0, 200) + '...'
-                        : event.content || 'No content available'
-                        }
-                    </p>
-                    
-                    <div className="flex items-center text-xs text-slate-500 space-x-4 font-mono mb-3">
-                        <span className="flex items-center">
-                        <Globe className="h-3 w-3 mr-1" />
-                        {event.platform?.toUpperCase()} // {event.source}
-                        </span>
-                        <span className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {formatTimestamp(event.timestamp)}
-                        </span>
-                    </div>
-                    
-                    {event.entities && event.entities.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                        {event.entities.slice(0, 5).map((entity, i) => (
-                            <span
-                            key={i}
-                            className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-blue-900/30 text-blue-300 border border-blue-500/30"
-                            >
-                            {entity}
-                            </span>
-                        ))}
-                        </div>
-                    )}
-                    </div>
-
-                    {/* Desktop Layout */}
-                    <div className="hidden sm:block">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                        <div className="flex items-center mb-3">
-                            <div className="flex-1">
-                                <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
-                                {event.title}
-                                </h4>
-                                <TranslationButton eventId={event.id || index} title={event.title} />
-                            </div>
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
-                                event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :
-                                event.threat_score >= 40 ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30' :
-                                'bg-green-900/30 text-green-400 border border-green-500/30'
-                            }`}>
-                                THREAT: {event.threat_score.toFixed(1)}
-                            </span>
-                            </div>
-                        <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                            {event.content && event.content.length > 200 
-                            ? event.content.substring(0, 200) + '...'
-                            : event.content || 'No content available'
-                            }
-                        </p>
-                        <div className="flex items-center text-xs text-slate-500 space-x-6 font-mono">
-                            <span className="flex items-center">
-                            <Globe className="h-3 w-3 mr-2" />
-                            SOURCE: {event.platform?.toUpperCase()} // {event.source}
-                            </span>
-                            <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-2" />
-                            {formatTimestamp(event.timestamp)}
-                            </span>
-                        </div>
-                        {event.entities && event.entities.length > 0 && (
-                            <div className="mt-3">
-                            <div className="flex flex-wrap gap-2">
-                                {event.entities.slice(0, 5).map((entity, i) => (
-                                <span
-                                    key={i}
-                                    className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono font-medium bg-blue-900/30 text-blue-300 border border-blue-500/30"
-                                >
-                                    {entity}
-                                </span>
-                                ))}
-                            </div>
-                            </div>
-                        )}
-                        </div>
-                        {event.url && (
-                        <a
-                            href={event.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-4 text-blue-400 hover:text-blue-300 text-sm font-mono transition-colors duration-200"
-                        >
-                            VIEW SOURCE
-                        </a>
-                        )}
-                    </div>
-                    </div>
-                </div>
+                  <EventItem key={event.id || index} event={event} index={index} />
                 ));
             })()}
             </div>

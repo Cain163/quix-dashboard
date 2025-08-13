@@ -24,7 +24,8 @@ const App = () => {
   const [translationLoading, setTranslationLoading] = useState({});
 
   // Translation function at App level
-  const translateTitle = async (eventId, originalTitle) => {
+// Translation function at App level
+const translateTitle = React.useCallback(async (eventId, originalTitle) => {
     const key = `${eventId}`;
     
     // If already translated, toggle back to original
@@ -35,7 +36,7 @@ const App = () => {
       }));
       return;
     }
-
+  
     setTranslationLoading(prev => ({ ...prev, [key]: true }));
     
     try {
@@ -45,24 +46,27 @@ const App = () => {
           ...defaultHeaders
         }
       });
-
+  
       if (response.ok) {
         const data = await response.json();
-        const translated = data.translated_text || originalTitle;
+        // Check if the translation is the same as original (meaning it's already in English)
+        if (data.translated_text === originalTitle || data.error) {
+          // Don't store anything, just clear loading state
+          setTranslationLoading(prev => ({ ...prev, [key]: false }));
+          return;
+        }
         
         setTranslations(prev => ({
           ...prev,
-          [key]: translated
+          [key]: data.translated_text
         }));
-        
-        console.log('Translation stored for event', eventId, ':', translated);
       }
     } catch (error) {
       console.error('Translation failed:', error);
     } finally {
       setTranslationLoading(prev => ({ ...prev, [key]: false }));
     }
-  };
+  }, [translations]);
 
   // Simple translation that replaces the title
   const TranslationButton = ({ eventId, title }) => {
@@ -219,12 +223,12 @@ const App = () => {
   };
 
   // Event Item Component - now gets title from translations state
-  const EventItem = ({ event, index }) => {
+  const EventItem = React.memo(({ event, index }) => {
     const eventKey = `${event.id || index}`;
     const displayTitle = translations[eventKey] || event.title;
 
     return (
-    <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-all duration-300 ease-in-out" data-event-id={event.id || index}>
+    <div className="p-4 sm:p-6 hover:bg-slate-700/20 transition-colors duration-200" data-event-id={event.id || index}>
         {/* Mobile Layout */}
         <div className="block sm:hidden">
           <div className="flex justify-between items-start mb-3">
@@ -352,7 +356,11 @@ const App = () => {
         </div>
       </div>
     );
-  };
+    }, (prevProps, nextProps) => {
+        // Custom comparison function - only re-render if event or index changes
+        return prevProps.event.id === nextProps.event.id && 
+            prevProps.index === nextProps.index;
+  });
 
   if (loading && !dashboardData) {
     return (

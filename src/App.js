@@ -29,8 +29,11 @@ const App = () => {
     const [translatedTitle, setTranslatedTitle] = useState('');
 
     const toggleTranslation = async () => {
+      console.log('Toggle translation clicked, isTranslated:', isTranslated);
+      
       if (isTranslated) {
         // Show original
+        console.log('Showing original:', originalTitle);
         setDisplayTitle(originalTitle);
         setIsTranslated(false);
         return;
@@ -38,12 +41,14 @@ const App = () => {
       
       if (translatedTitle) {
         // Show cached translation
+        console.log('Showing cached translation:', translatedTitle);
         setDisplayTitle(translatedTitle);
         setIsTranslated(true);
         return;
       }
 
       // Translate for first time
+      console.log('Starting translation for:', title);
       setTranslationLoading(true);
       try {
         const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(title)}&target_language=english`, {
@@ -53,18 +58,21 @@ const App = () => {
           }
         });
 
+        console.log('Response status:', response.status);
         if (response.ok) {
           const data = await response.json();
-          console.log('Translation response:', data); // Debug log
+          console.log('Translation response data:', data);
           const translated = data.translated_text || title;
+          console.log('Setting translated title to:', translated);
           setTranslatedTitle(translated);
           setDisplayTitle(translated);
           setIsTranslated(true);
+          console.log('Translation state updated');
         } else {
           console.error('Translation failed:', response.status);
         }
       } catch (error) {
-        console.error('Translation failed');
+        console.error('Translation failed:', error);
       } finally {
         setTranslationLoading(false);
       }

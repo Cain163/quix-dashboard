@@ -65,7 +65,9 @@ const App = () => {
           const translated = data.translated_text || title;
           console.log('Setting translated title to:', translated);
           setTranslatedTitle(translated);
+          console.log('About to call setDisplayTitle with:', translated);
           setDisplayTitle(translated);
+          console.log('Called setDisplayTitle, now setting isTranslated to true');
           setIsTranslated(true);
           console.log('Translation state updated');
         } else {
@@ -311,7 +313,7 @@ const App = () => {
                   <h4 className="text-md font-semibold text-slate-100 mr-4 font-mono mb-1">
                     {displayTitle}
                   </h4>
-                  <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={setDisplayTitle} />
+                  <TranslationButton eventId={event.id || index} title={event.title} setDisplayTitle={updateDisplayTitle} />
                 </div>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
                   event.threat_score >= 70 ? 'bg-red-900/30 text-red-400 border border-red-500/30' :

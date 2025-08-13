@@ -36,14 +36,12 @@ const App = () => {
       setLoading(true);
       
       try {
-        const response = await fetch(`${API_BASE_URL}/translate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            ...defaultHeaders
-          },
-          body: `text=${encodeURIComponent(title)}&target_language=english`
-        });
+        const response = await fetch(`${API_BASE_URL}/translate?text=${encodeURIComponent(title)}&target_language=english`, {
+            method: 'POST',
+            headers: {
+              ...defaultHeaders
+            }
+          });
 
         if (response.ok) {
           const data = await response.json();

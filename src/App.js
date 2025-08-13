@@ -219,7 +219,7 @@ const App = () => {
   };
 
   // Event Item Component - now gets title from translations state
-  const EventItem = React.memo(({ event, index }) => {
+  const EventItem = ({ event, index }) => {
     const eventKey = `${event.id || index}`;
     const displayTitle = translations[eventKey] || event.title;
 
